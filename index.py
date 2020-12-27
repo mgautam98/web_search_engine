@@ -153,19 +153,6 @@ def index():
 
     return "Indexing started"
 
-@app.route("/indexf", methods=['POST'])
-def index_full():
-
-    # get POST data
-    data = dict((key, request.form.get(key)) for key in request.form.keys())
-    if "url" not in data :
-        return ('No url specified in POST data')
-
-    # launch exploration job
-    index_page(data["url"])
-
-    return "Full website index started"
-
 def index_page(link):
 
     try:
@@ -192,9 +179,23 @@ def index_page(link):
     process.crawl(PageSpider, start_urls = [link,], es_client=client)
     process.start()
 
+
+@app.route("/indexf", methods=['POST'])
+def index_full():
+
+    # get POST data
+    data = dict((key, request.form.get(key)) for key in request.form.keys())
+    if "url" not in data :
+        return ('No url specified in POST data')
+
+    # launch exploration job
+    index_site(data["url"])
+
+    return "Full website index started"
+
 def index_site(link):
 
-    print("explore website at : %s"%link)
+    print("Index full website at : %s"%link)
 
     # get final url after possible redictions
     try :
@@ -222,17 +223,14 @@ def index_site(link):
     process.start()
 
 
-@app.route("/search", methods=['POST'])
+@app.route("/search", methods=['GET'])
 def search():
-    
-    # get POST data
-    data = dict((key, request.form.get(key)) for key in request.form.keys())
-    if "query" not in data :
+    user_query = request.args.get("query")
+
+    if user_query is None :
         return ('No query specified in POST data')
 
-    user_query = data["query"]
-
-    req = Search(using=client, index='web-en', doc_type='page').query('match', body=user_query).sort({ "_score" : {"order" : "desc"}})
+    req = Search(using=client, index='web-en', doc_type='page').sort({ "_score" : {"order" : "desc"}}).query('match', body=user_query)
     response = req.scan()
 
     res = []
@@ -240,7 +238,7 @@ def search():
     for hit in response:
         res.append({
             "url" : hit.url, 
-            "descrption" : hit.body[0:200]
+            "descrption" : hit.body[0:500]
         })
 
     return jsonify(res)
