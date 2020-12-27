@@ -1,0 +1,6 @@
+scrapy
+elasticsearch_dsl
+langdetect 
+html2text 
+justext 
+tldextract
